@@ -3,7 +3,12 @@ name: Check Pelosi Trades
 on:
   schedule:
     - cron: "*/30 * * * *" # Every 30 minutes
-  workflow_dispatch: # Manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      test-notification:
+        description: "Send a test notification instead of checking trades"
+        type: boolean
+        default: false
 
 jobs:
   check:
@@ -20,20 +25,29 @@ jobs:
 
       # Restore seen-trades state from previous runs
       - uses: actions/cache/restore@v4
+        if: inputs.test-notification == false
         id: cache-restore
         with:
           path: data/seen-trades.json
           key: seen-trades-${{ github.run_id }}
           restore-keys: seen-trades-
 
-      - run: npm run check
+      - name: Send test notification
+        if: inputs.test-notification == true
+        run: npm run test-notify
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+
+      - name: Check trades
+        if: inputs.test-notification == false
+        run: npm run check
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
 
       # Save updated state for next run
       - uses: actions/cache/save@v4
-        if: always()
+        if: inputs.test-notification == false
         with:
           path: data/seen-trades.json
           key: seen-trades-${{ github.run_id }}
