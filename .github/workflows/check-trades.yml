@@ -1,0 +1,39 @@
+name: Check Pelosi Trades
+
+on:
+  schedule:
+    - cron: "*/30 * * * *" # Every 30 minutes
+  workflow_dispatch: # Manual trigger from GitHub UI
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      # Restore seen-trades state from previous runs
+      - uses: actions/cache/restore@v4
+        id: cache-restore
+        with:
+          path: data/seen-trades.json
+          key: seen-trades-${{ github.run_id }}
+          restore-keys: seen-trades-
+
+      - run: npm run check
+        env:
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+
+      # Save updated state for next run
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: data/seen-trades.json
+          key: seen-trades-${{ github.run_id }}
