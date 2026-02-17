@@ -1,6 +1,10 @@
-import { config } from "./config.js";
+const topic = process.env.NTFY_TOPIC;
+if (!topic) {
+  console.error("Missing NTFY_TOPIC env var");
+  process.exit(1);
+}
 
-const NTFY_URL = `https://ntfy.sh/${config.ntfyTopic}`;
+const NTFY_URL = `https://ntfy.sh/${topic}`;
 
 const res = await fetch(NTFY_URL, {
   method: "POST",
